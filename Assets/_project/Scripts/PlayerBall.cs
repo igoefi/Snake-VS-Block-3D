@@ -3,50 +3,131 @@ using UnityEngine;
 public class PlayerBall : MonoBehaviour
 {
     [SerializeField] private Vector3 Indent;
-    [SerializeField] private float ZSpeed;
-    [SerializeField] private float MaxZSpeed;
-    private bool _isHead = false;
+    [SerializeField] private float IndentSmooth;
 
-    public Transform _nextPosition { get; set; }
+    [SerializeField] private float ZSpeed;
+    [SerializeField] private float XSpeed;
+    [SerializeField] private float MaxZSpeed;
+
+    [SerializeField] private float minXPos;
+    [SerializeField] private float maxXPos;
+
+    public bool IsHead { get; private set; } = false;
+    private PlayerBall _parent;
+    public Vector3 NextPosition { get; set; }
     private Rigidbody _body;
     private void Start()
     {
 
         _body = GetComponent<Rigidbody>();
-        if (transform.parent == null)
-            _isHead = true;
+        Transform parent = transform.parent;
+        if (parent == null)
+        {
+            IsHead = true;
+            CameraFollow.HeadBall = transform;
+        }
+        else
+        {
+            _parent = parent.GetComponent<PlayerBall>();
+        }
     }
 
     private void Update()
     {
-        Vector3 position = transform.position;
-
-        if (_isHead)
+        if (GameManager.GameState != GameManager.GameStates.Playing)
         {
-            _body.velocity += new Vector3(0, 0, ZSpeed * Time.deltaTime);
-            if (_body.velocity.z > MaxZSpeed)
-            {
-                _body.velocity = new Vector3(_body.velocity.x, _body.velocity.y, MaxZSpeed);
-            }
+            _body.velocity = Vector3.zero;
+            return;
+        }
+
+        NextPosition = transform.position;
+        
+        if (IsHead)
+        {
+            HeadMove();
         }
         else
         {
-            if (_nextPosition == null) return;
+            if (NextPosition == null) return;
 
+            Vector3 dif = _parent.transform.position - Indent - transform.position;
+            _body.MovePosition(transform.position + dif * IndentSmooth);
         }
     }
 
     public void AddTail(int sum)
     {
-        Transform child = transform.GetChild(0);
+        if (transform.childCount > 0)
+        {
+            Transform child = transform.GetChild(0);
 
-        if (child != null)
             child.GetComponent<PlayerBall>().AddTail(sum);
+            return;
+        }
 
+        GameObject ball = Instantiate(gameObject, transform);
+
+        sum--;
+        if (sum > 0)
+            ball.GetComponent<PlayerBall>().AddTail(sum);
+
+        if (Input.GetMouseButtonUp(0))
+            _body.velocity = new(0, _body.velocity.y, _body.velocity.z);
     }
 
-    private void SetHead()
+    public void SetHead(Vector3 velocity)
     {
-        _isHead = true;
+        IsHead = true;
+        _parent = null;
+
+        _body.velocity = velocity * 0.7f;
+
+        CameraFollow.HeadBall = transform;
+    }
+
+    public void Dead()
+    {
+        FlashHead();
+        Destroy(gameObject);
+    }
+
+    private void FlashHead()
+    {
+        if (transform.childCount <= 0)
+        {
+            GameManager.SetGameState(GameManager.GameStates.Lose);
+            return;
+        }
+
+        Transform child = transform.GetChild(0);
+
+        child.gameObject.GetComponent<PlayerBall>().SetHead(_body.velocity);
+        child.gameObject.GetComponent<PlayerBall>().enabled = true;
+        child.transform.parent = null;
+    }
+
+    private void HeadMove()
+    {
+        Vector3 velocity = new(PlayerBias.HeadVelocityX * XSpeed * Time.deltaTime, 0, ZSpeed * Time.deltaTime);
+        _body.velocity += velocity;
+
+        if (_body.velocity.z > MaxZSpeed)
+        {
+            _body.velocity = new(_body.velocity.x, _body.velocity.y, MaxZSpeed);
+        }
+
+        if(Input.GetMouseButtonUp(0))
+            _body.velocity = new(0, _body.velocity.y, _body.velocity.z);
+
+        Vector3 pos = transform.position;
+        if (pos.x > minXPos && pos.x < maxXPos) return;
+
+        if (pos.x > maxXPos)
+            pos = new(maxXPos - .1f, pos.y, pos.z);
+        else if (pos.x < minXPos)
+            pos = new(minXPos + .1f, pos.y, pos.z);
+
+        transform.position = pos;
+        _body.velocity = new(0, _body.velocity.y, _body.velocity.z);
     }
 }
