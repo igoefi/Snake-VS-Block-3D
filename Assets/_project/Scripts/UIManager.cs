@@ -12,13 +12,25 @@ public class UIManager : MonoBehaviour
     [SerializeField] GameObject LoseMenu;
 
     [SerializeField] TMP_Text LevelText;
+    [SerializeField] TMP_Text TextSumOfShips;
 
     private GameObject _openMenu;
 
+    private int _sumOfShips;
     private void Start()
     {
         if(LevelText != null)
             LevelText.text = "Level: " + PlayerPrefs.GetInt("Level", 1);
+
+        _sumOfShips = PlayerBall.SumOfShips;
+
+        SetSumOfShips();
+    }
+
+    private void Update()
+    {
+        if (_sumOfShips != PlayerBall.SumOfShips)
+            SetSumOfShips();
     }
 
     public void OpenCloseMenu()
@@ -54,5 +66,12 @@ public class UIManager : MonoBehaviour
     public void ResetLevels()
     {
         Manager.ResetLevels();
+    }
+
+    private void SetSumOfShips()
+    {
+        if (TextSumOfShips != null)
+            TextSumOfShips.text = PlayerBall.SumOfShips.ToString();
+        _sumOfShips = PlayerBall.SumOfShips;
     }
 }

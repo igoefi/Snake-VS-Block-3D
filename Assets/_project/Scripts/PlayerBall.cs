@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerBall : MonoBehaviour
@@ -12,10 +13,17 @@ public class PlayerBall : MonoBehaviour
     [SerializeField] private float minXPos;
     [SerializeField] private float maxXPos;
 
+    [SerializeField] private ParticleSystem FinishParticles;
+
     public bool IsHead { get; private set; } = false;
-    private PlayerBall _parent;
     public Vector3 NextPosition { get; set; }
+
+    public static int SumOfShips { get; private set; }
+
+    private PlayerBall _parent;
     private Rigidbody _body;
+
+    private bool _isFinish;
     private void Start()
     {
 
@@ -25,9 +33,11 @@ public class PlayerBall : MonoBehaviour
         {
             IsHead = true;
             CameraFollow.HeadBall = transform;
+            SumOfShips = 1;
         }
         else
         {
+            SumOfShips++;
             _parent = parent.GetComponent<PlayerBall>();
         }
     }
@@ -36,12 +46,18 @@ public class PlayerBall : MonoBehaviour
     {
         if (GameManager.GameState != GameManager.GameStates.Playing)
         {
+            if (GameManager.GameState == GameManager.GameStates.Win && !_isFinish)
+            {
+                _isFinish = true;
+                StartCoroutine(Finish());
+            }
+
             _body.velocity = Vector3.zero;
             return;
         }
 
         NextPosition = transform.position;
-        
+
         if (IsHead)
         {
             HeadMove();
@@ -57,11 +73,16 @@ public class PlayerBall : MonoBehaviour
 
     public void AddTail(int sum)
     {
-        if (transform.childCount > 0)
+        if (transform.childCount > 1)
         {
-            Transform child = transform.GetChild(0);
+            foreach (Transform child in transform)
+            {
+                if (child.gameObject.GetComponent<PlayerBall>() != null)
+                {
+                    child.GetComponent<PlayerBall>().AddTail(sum);
 
-            child.GetComponent<PlayerBall>().AddTail(sum);
+                }
+            }
             return;
         }
 
@@ -88,22 +109,29 @@ public class PlayerBall : MonoBehaviour
     public void Dead()
     {
         FlashHead();
+        SumOfShips--;
         Destroy(gameObject);
     }
 
     private void FlashHead()
     {
-        if (transform.childCount <= 0)
+        if (transform.childCount <= 1)
         {
             GameManager.SetGameState(GameManager.GameStates.Lose);
             return;
         }
 
-        Transform child = transform.GetChild(0);
+        foreach (Transform child in transform)
+        {
+            if (child.gameObject.GetComponent<PlayerBall>() != null)
+            {
+                child.gameObject.GetComponent<PlayerBall>().SetHead(_body.velocity);
+                child.gameObject.GetComponent<PlayerBall>().enabled = true;
+                child.transform.parent = null;
+                return;
+            }
+        }
 
-        child.gameObject.GetComponent<PlayerBall>().SetHead(_body.velocity);
-        child.gameObject.GetComponent<PlayerBall>().enabled = true;
-        child.transform.parent = null;
     }
 
     private void HeadMove()
@@ -116,7 +144,7 @@ public class PlayerBall : MonoBehaviour
             _body.velocity = new(_body.velocity.x, _body.velocity.y, MaxZSpeed);
         }
 
-        if(Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0))
             _body.velocity = new(0, _body.velocity.y, _body.velocity.z);
 
         Vector3 pos = transform.position;
@@ -129,5 +157,15 @@ public class PlayerBall : MonoBehaviour
 
         transform.position = pos;
         _body.velocity = new(0, _body.velocity.y, _body.velocity.z);
+    }
+
+    private IEnumerator Finish()
+    {
+        FinishParticles.Play();
+        FinishParticles.transform.parent = transform.parent;
+        yield return new WaitForSeconds(.7f);
+        Destroy(gameObject);
+        yield return new WaitForSeconds(4.3f);
+        Destroy(FinishParticles);
     }
 }

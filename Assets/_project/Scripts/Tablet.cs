@@ -1,13 +1,14 @@
 using UnityEngine;
-
+using TMPro;
 public class Tablet : UsableObject
 {
-    [SerializeField] private int Sum;
+
+    [SerializeField] TMP_Text _text;
+
     private void Start()
     {
-        _count += Sum;
+        _text.text = _count.ToString();
     }
-
     protected override void OnTriggerEnter(Collider other)
     {
         PlayerBall player = other.GetComponent<PlayerBall>();
