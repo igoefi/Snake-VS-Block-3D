@@ -13,8 +13,8 @@ public class PlayerBall : MonoBehaviour
     [SerializeField] private float minXPos;
     [SerializeField] private float maxXPos;
 
-    [SerializeField] private ParticleSystem FinishParticles;
-
+    [SerializeField] private ParticleSystem _finishParticles;
+    [SerializeField] AudioSource _finishAudio;
     public bool IsHead { get; private set; } = false;
     public Vector3 NextPosition { get; set; }
 
@@ -26,7 +26,6 @@ public class PlayerBall : MonoBehaviour
     private bool _isFinish;
     private void Start()
     {
-
         _body = GetComponent<Rigidbody>();
         Transform parent = transform.parent;
         if (parent == null)
@@ -73,7 +72,7 @@ public class PlayerBall : MonoBehaviour
 
     public void AddTail(int sum)
     {
-        if (transform.childCount > 1)
+        if (transform.childCount > 2)
         {
             foreach (Transform child in transform)
             {
@@ -91,9 +90,6 @@ public class PlayerBall : MonoBehaviour
         sum--;
         if (sum > 0)
             ball.GetComponent<PlayerBall>().AddTail(sum);
-
-        if (Input.GetMouseButtonUp(0))
-            _body.velocity = new(0, _body.velocity.y, _body.velocity.z);
     }
 
     public void SetHead(Vector3 velocity)
@@ -115,7 +111,7 @@ public class PlayerBall : MonoBehaviour
 
     private void FlashHead()
     {
-        if (transform.childCount <= 1)
+        if (transform.childCount <= 2)
         {
             GameManager.SetGameState(GameManager.GameStates.Lose);
             return;
@@ -161,11 +157,21 @@ public class PlayerBall : MonoBehaviour
 
     private IEnumerator Finish()
     {
-        FinishParticles.Play();
-        FinishParticles.transform.parent = transform.parent;
+        _finishParticles.Play();
+
+        _finishParticles.transform.parent = transform.parent;
+        _finishAudio.transform.parent = transform.parent;
+
         yield return new WaitForSeconds(.7f);
+
         Destroy(gameObject);
+        if(_parent == null)
+            _finishAudio.Play();
+
         yield return new WaitForSeconds(4.3f);
-        Destroy(FinishParticles);
+
+        Destroy(_finishParticles);
+        if(_parent == null)
+            Destroy(_finishAudio);
     }
 }

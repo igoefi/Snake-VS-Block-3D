@@ -7,6 +7,7 @@ public class Let : UsableObject
     [SerializeField] ParticleSystem _particleSystem;
     [SerializeField] TMP_Text[] _texts;
 
+    [SerializeField] AudioSource _hitAudio;
     private void Start()
     {
         SetText();
@@ -23,6 +24,7 @@ public class Let : UsableObject
 
         if (_texts != null) SetText();
         if(_particleSystem != null) _particleSystem.Play();
+        if (_hitAudio != null) _hitAudio.Play();
 
         if (_count <= 0)
             StartCoroutine(Dead());
@@ -37,8 +39,10 @@ public class Let : UsableObject
     private IEnumerator Dead()
     {
         if (_particleSystem != null) _particleSystem.transform.parent = transform.parent;
+        if (_hitAudio != null) _hitAudio.transform.parent = transform.parent;
         Destroy(gameObject);
         yield return new WaitForSeconds(1);
         if (_particleSystem != null) Destroy(_particleSystem);
+        if (_hitAudio != null) Destroy(_hitAudio);
     }
 }
