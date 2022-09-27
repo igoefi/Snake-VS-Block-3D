@@ -4,6 +4,7 @@ public class Tablet : UsableObject
 {
 
     [SerializeField] TMP_Text _text;
+    [SerializeField] AudioSource _audio;
 
     private void Start()
     {
@@ -16,6 +17,14 @@ public class Tablet : UsableObject
         if (player.IsHead == false) return;
 
         other.GetComponent<PlayerBall>().AddTail(_count);
+        StartCoroutine(StartAudio());
         Destroy(gameObject);
+    }
+    private System.Collections.IEnumerator StartAudio()
+    {
+        _audio.Play();
+        _audio.transform.parent = transform.parent;
+        yield return new WaitForSeconds(1);
+        Destroy(_audio);
     }
 }

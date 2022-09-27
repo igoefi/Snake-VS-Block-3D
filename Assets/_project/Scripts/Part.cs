@@ -51,6 +51,6 @@ public class Part : MonoBehaviour
     private void SetCount(UsableObject usable)
     {
         System.Random rand = new();
-        usable.SetCount(rand.Next(1, 4));
+        usable.SetCount(rand.Next(1, 4) + PlayerPrefs.GetInt("Level", 1));
     }
 }
